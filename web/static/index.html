@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sherlock — Bitcoin Chain Analysis</title>
+  <meta name="description" content="Sherlock — Bitcoin chain analysis engine. Extract patterns and insights from raw blockchain data without external APIs." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════ HEADER ═══════════════════════════════════════ -->
+<header class="site-header">
+  <div class="header-inner">
+
+    <!-- LEFT — wordmark -->
+    <div class="logo-area">
+      <svg class="logo-mark" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="11" cy="11" r="7.5" stroke="currentColor" stroke-width="2.2"/>
+        <line x1="16.8" y1="16.8" x2="24" y2="24" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+      <div class="logo-text">
+        <h1 class="logo-title">Sherlock</h1>
+        <p class="logo-sub">Bitcoin Chain Analysis Engine</p>
+      </div>
+    </div>
+
+    <!-- RIGHT — controls -->
+    <div class="header-controls">
+      <select id="dataset-selector" class="filter-select" title="Select a dataset to analyze"></select>
+      <button id="run-analysis-btn" class="btn-primary" title="Run analysis on the selected dataset">Run Analysis</button>
+      <label class="upload-label" title="Choose a .dat file to upload and register">
+        <span id="upload-filename">Upload .dat</span>
+        <input type="file" id="file-upload" accept=".dat" style="display:none" />
+      </label>
+    </div>
+
+  </div>
+</header>
+
+
+<!-- ═══════════════════════ NAV ANCHORS ══════════════════════════════════ -->
+<nav class="section-nav" id="section-nav" aria-label="Dashboard sections">
+  <div class="section-nav-inner">
+    <a href="#section-dataset"      class="nav-anchor" data-section="section-dataset">Overview</a>
+    <span class="nav-sep">·</span>
+    <a href="#section-observations" class="nav-anchor" data-section="section-observations">Observations</a>
+    <span class="nav-sep">·</span>
+    <a href="#section-blocks"       class="nav-anchor" data-section="section-blocks">Block Explorer</a>
+    <span class="nav-sep">·</span>
+    <a href="#section-tx"           class="nav-anchor" data-section="section-tx">Transactions</a>
+    <span class="nav-sep">·</span>
+    <a href="#glossary"             class="nav-anchor" data-section="glossary">Glossary</a>
+  </div>
+</nav>
+
+<!-- ═══════════════════════ MAIN CONTENT ════════════════════════════════ -->
+<div id="initial-loader" class="initial-loader">
+  <div class="spinner"></div>
+  <p>Loading analysis data…</p>
+</div>
+
+<main id="main-content" class="main-content hidden">
+
+  <!-- ── Dataset Info card ──────────────────────────────────────────── -->
+  <section class="section-group" id="section-dataset">
+    <div class="dataset-card">
+      <div class="dataset-card-title">
+        <span class="dataset-icon">📂</span>
+        <span>Dataset Information</span>
+      </div>
+      <div class="dataset-grid">
+        <div class="ds-field"><span class="ds-label">Dataset</span><span class="ds-value mono" id="ds-filename">—</span></div>
+        <div class="ds-field"><span class="ds-label">Network</span><span class="ds-value" id="ds-network">mainnet</span></div>
+        <div class="ds-field"><span class="ds-label">Blocks</span><span class="ds-value" id="ds-blocks">—</span></div>
+        <div class="ds-field"><span class="ds-label">Transactions</span><span class="ds-value" id="ds-txs">—</span></div>
+        <div class="ds-field"><span class="ds-label">Block Range</span><span class="ds-value" id="ds-range">—</span></div>
+        <div class="ds-field"><span class="ds-label">Flagged</span><span class="ds-value accent" id="ds-flagged">—</span></div>
+        <div class="ds-field"><span class="ds-label">Analysis Time</span><span class="ds-value" id="ds-analysis-time">—</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Metric cards ─────────────────────────────────────────────── -->
+  <section class="section-group" id="section-metrics">
+    <div class="kpi-grid">
+      <div class="kpi-card accent">
+        <div class="kpi-icon">🧱</div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpi-blocks">—</div>
+          <div class="kpi-label">Blocks</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🔁</div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpi-total-tx">—</div>
+          <div class="kpi-label">Transactions</div>
+        </div>
+      </div>
+      <div class="kpi-card warn">
+        <div class="kpi-icon">🚩</div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpi-flagged">—</div>
+          <div class="kpi-label">Flagged</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">⚡</div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpi-median-fee">—</div>
+          <div class="kpi-label">Median Fee (sat/vB)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Charts ────────────────────────────────────────────────────── -->
+  <section class="section-group" id="section-charts">
+    <!-- Row 1: Pie + Donut -->
+    <div class="charts-row-2">
+      <div class="chart-card">
+        <h2 class="card-title">Output Script Distribution</h2>
+        <div class="chart-wrap-sm">
+          <div class="chart-skeleton" id="script-skeleton"></div>
+          <canvas id="script-chart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h2 class="card-title">Transaction Classification
+          <span class="card-hint">Click to filter transactions ↓</span>
+        </h2>
+        <div class="chart-wrap-sm">
+          <div class="chart-skeleton" id="class-skeleton"></div>
+          <canvas id="class-chart"></canvas>
+        </div>
+      </div>
+    </div>
+    <!-- Row 2: Heuristics full width -->
+    <div class="chart-card chart-card-full" style="margin-top:1rem">
+      <h2 class="card-title">Heuristic Detections
+        <span class="card-hint">Click a bar to filter transactions ↓  · Hover for description</span>
+      </h2>
+      <div class="chart-wrap-bar">
+        <div class="chart-skeleton" id="heuristic-skeleton"></div>
+        <canvas id="heuristic-chart"></canvas>
+      </div>
+    </div>
+    <!-- Fee stats inside charts section -->
+    <div class="fee-stats-card" style="margin-top:1rem">
+      <h2 class="card-title">⚡ Fee Rate Statistics <span class="unit">(sat/vByte)</span></h2>
+      <div class="fee-grid">
+        <div class="fee-stat"><span class="fee-label">Min</span><span class="fee-val" id="fee-min">—</span></div>
+        <div class="fee-stat"><span class="fee-label">Median</span><span class="fee-val accent" id="fee-median">—</span></div>
+        <div class="fee-stat"><span class="fee-label">Mean</span><span class="fee-val" id="fee-mean">—</span></div>
+        <div class="fee-stat"><span class="fee-label">Max</span><span class="fee-val" id="fee-max">—</span></div>
+      </div>
+      <div class="fee-order" id="fee-order"></div>
+    </div>
+  </section>
+
+  <!-- ── Sherlock Observations ──────────────────────────────────────── -->
+  <section class="section-group" id="section-observations">
+    <div class="observations-card">
+      <h2 class="card-title">🕵️ Sherlock Observations</h2>
+      <ul id="observations-list" class="observations-list"></ul>
+    </div>
+  </section>
+
+  <!-- ── Block Explorer ────────────────────────────────────────────── -->
+  <section class="section-group" id="section-blocks">
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title">🧱 Block Explorer</h2>
+        <span id="block-count-label" class="count-label"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Height</th><th>Tx Count</th>
+              <th>Flagged</th><th>Median Fee</th><th>Block Hash</th>
+            </tr>
+          </thead>
+          <tbody id="blocks-tbody"></tbody>
+        </table>
+      </div>
+      <div id="block-more" class="tx-more hidden">
+        <button id="load-more-blocks-btn" class="btn-secondary">Load more blocks</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Transaction Explorer ────────────────────────────────────────── -->
+  <section class="section-group" id="section-tx">
+    <div class="section">
+      <h2 class="section-title">🔎 Transaction Explorer <span class="badge" id="tx-block-badge">Block —</span></h2>
+      <div class="tx-controls">
+        <input type="text" id="tx-search" class="tx-search" placeholder="Search by TXID…" />
+        <select id="class-filter" class="filter-select">
+          <option value="">All classifications</option>
+          <option value="coinjoin">CoinJoin</option>
+          <option value="consolidation">Consolidation</option>
+          <option value="batch_payment">Batch Payment</option>
+          <option value="self_transfer">Self Transfer</option>
+          <option value="simple_payment">Simple Payment</option>
+          <option value="unknown">Unknown</option>
+        </select>
+        <select id="heuristic-filter" class="filter-select">
+          <option value="">All heuristics</option>
+          <option value="cioh">CIOH</option>
+          <option value="change_detection">Change Detection</option>
+          <option value="coinjoin">CoinJoin</option>
+          <option value="consolidation">Consolidation</option>
+          <option value="address_reuse">Address Reuse</option>
+          <option value="round_number_payment">Round Number</option>
+          <option value="batch_payment">Batch Payment</option>
+        </select>
+        <span id="tx-count-label" class="count-label"></span>
+      </div>
+      <div id="tx-list" class="tx-list"></div>
+      <div id="tx-more" class="tx-more hidden">
+        <button id="load-more-btn" class="btn-secondary">Load more transactions</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════════════════ ANALYSIS GLOSSARY ════════════════════════════ -->
+<section class="glossary-section" id="glossary">
+  <div class="glossary-inner">
+    <h2 class="glossary-title">📖 Analysis Glossary</h2>
+    <p class="glossary-sub">Reference guide to the heuristics and classifications used in this dashboard.</p>
+    <div class="glossary-grid">
+      <div class="glossary-card" data-tooltip="The most fundamental Bitcoin clustering heuristic.">
+        <div class="glossary-card-header"><span class="glossary-dot" style="background:#F59E0B"></span><strong>CIOH — Common Input Ownership</strong></div>
+        <p>Multiple inputs in a transaction likely belong to the same wallet, since a single entity must sign all inputs.</p>
+      </div>
+      <div class="glossary-card">
+        <div class="glossary-card-header"><span class="glossary-dot" style="background:#3B82F6"></span><strong>Change Detection</strong></div>
+        <p>Identifies outputs likely returning change to the sender using script type matching and round-number analysis.</p>
+      </div>
+      <div class="glossary-card">
+        <div class="glossary-card-header"><span class="glossary-dot" style="background:#A78BFA"></span><strong>CoinJoin Detection</strong></div>
+        <p>Equal-value outputs from multiple inputs indicate participants deliberately combining funds for privacy mixing.</p>
+      </div>
+      <div class="glossary-card">
+        <div class="glossary-card-header"><span class="glossary-dot" style="background:#FCA5A5"></span><strong>Consolidation</strong></div>
+        <p>Many inputs merged into few outputs — standard wallet UTXO cleanup, often done during low-fee periods.</p>
+      </div>
+      <div class="glossary-card">
+        <div class="glossary-card-header"><span class="glossary-dot" style="background:#6EE7B7"></span><strong>Address Reuse</strong></div>
+        <p>The same scriptPubKey appears in both inputs and outputs, linking UTXO sets and reducing on-chain privacy.</p>
+      </div>
+      <div class="glossary-card">
+        <div class="glossary-card-header"><span class="glossary-dot" style="background:#FCD34D"></span><strong>Round Number Payment</strong></div>
+        <p>Output values divisible by round BTC denominations — a signal that a human specified the payment amount.</p>
+      </div>
+      <div class="glossary-card">
+        <div class="glossary-card-header"><span class="glossary-dot" style="background:#93C5FD"></span><strong>Batch Payment</strong></div>
+        <p>Few inputs, many outputs — one sender paying multiple recipients simultaneously. Common in exchange withdrawals.</p>
+      </div>
+      <div class="glossary-card">
+        <div class="glossary-card-header"><span class="glossary-dot" style="background:#9CA3AF"></span><strong>Classification Categories</strong></div>
+        <p>Each transaction is labeled: <em>Simple Payment</em>, <em>Consolidation</em>, <em>CoinJoin</em>, <em>Self Transfer</em>, <em>Batch Payment</em>, or <em>Unknown</em>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════ FOOTER ═══════════════════════════════════════ -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span><strong>Sherlock</strong></span>
+    <span class="footer-sep">·</span>
+    <span>Bitcoin Chain Analysis Engine</span>
+    <span class="footer-sep">·</span>
+    <span id="footer-stats">7 heuristics applied</span>
+  </div>
+</footer>
+
+<!-- ═══════════════════════ ERROR PANEL ══════════════════════════════════ -->
+<div id="error-panel" class="error-panel hidden">
+  <div class="error-inner">
+    <div class="error-icon">⚠️</div>
+    <h2>Analysis data not found</h2>
+    <p id="error-message">Upload a <code>.dat</code> file or select a dataset to begin analysis.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════ HEURISTIC TOOLTIP ════════════════════════════ -->
+<div id="h-tooltip" class="h-tooltip hidden" role="tooltip"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
