@@ -448,9 +448,9 @@ class _QuietHTTPServer(http.server.HTTPServer):
 
 def main():
     port = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", 3000))
-    # Bind to all interfaces when PORT is injected by a hosting platform (Railway, Render…),
-    # otherwise stay on localhost for local use.
-    host = "0.0.0.0" if "PORT" in os.environ and len(sys.argv) == 1 else "127.0.0.1"
+    # Bind to all interfaces when PORT is injected by a hosting platform (Railway, Render…).
+    # Local runs via web.sh do not export PORT so os.environ won't have it → stays on localhost.
+    host = "0.0.0.0" if "PORT" in os.environ else "127.0.0.1"
     server = _QuietHTTPServer((host, port), SherlockHandler)
     print(f"http://{host}:{port}")
     sys.stdout.flush()
