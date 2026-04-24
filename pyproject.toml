@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "sherlock"
+version = "1.0.0"
+description = "Bitcoin chain analysis engine — extract patterns and behavioral insights from raw block data."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+keywords = ["bitcoin", "blockchain", "chain-analysis", "heuristics", "privacy"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Security",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+]
+
+# Core has zero external dependencies — pure Python stdlib only
+dependencies = []
+
+[project.optional-dependencies]
+web = [
+  # Flask is only needed if you replace the stdlib HTTP server with Flask
+  # Leave empty — the default web server is stdlib only
+]
+dev = [
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
+]
+
+[project.scripts]
+sherlock = "sherlock.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/SakshiKasat18/sherlock"
+Repository = "https://github.com/SakshiKasat18/sherlock"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["sherlock*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["main", "test_*"]
+addopts = "-v"
